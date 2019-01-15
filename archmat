@@ -1,0 +1,216 @@
+#!/bin/bash
+echo '[] Welcome to Custom Arch Install Script'
+echo
+[[ $UID -ne 0 ]] && { echo '[] This should be run as root'; exit 1; }
+
+# Constants
+MYLOCALE='en_DK.UTF-8' # can be found in /etc/locale.gen
+MYZONE='Europe/Amsterdam' # can be found in /usr/share/zoneinfo/
+MIRROR_LINE='Server = https://mirror.i3d.net/pub/archlinux/$repo/os/$arch'
+LOG_FILE="$HOME/${0##*/}.log"
+
+# Test internet connection
+echo '[] Testing internet connection'
+if ! ping -c3 -W4 8.8.8.8; then
+    echo 'ERROR: No internet connection'
+    echo
+    echo 'Possibly useful troubleshooting commands:'
+    echo 'ip addr (device name example: enp0s3, wlp3s0)'
+    echo 'cp /etc/netctl/examples/wireless-wpa /etc/netctl/name'
+    echo 'netctl start name'
+    echo
+    read -rn1 -p "[] Would you like to run 'wifi-menu'? [Y/n] ";echo
+    case $REPLY in y|Y|"") exec wifi-menu; esac
+    exit 1
+fi
+echo
+
+# DATA COLLECTION
+#
+echo '[] Collecting user input...'
+lsblk
+read -rp '** What block device to use? (for example sdc): '
+BLOCK=$(tr -d '[:space:]' <<< $REPLY); DISK=/dev/$BLOCK
+[[ -b $DISK ]] || { echo 'ERROR: Bad user input, block device not found'; exit 1; }
+[[ $(</sys/block/$BLOCK/queue/rotational) == 0 ]] && IS_SSD='yes'
+echo
+read -rp '** Please enter login password: ' PASS
+[[ $PASS = *' '* ]] && { echo 'ERROR: Password cannot contain spaces!'; exit 1; }
+[[ -z $PASS ]] && { echo 'ERROR: Password cannot be empty'; exit 1; }
+echo
+read -rp '** Please enter machine host name: '
+HOST=$(tr -d '[:space:]' <<< $REPLY)
+[[ -z $HOST ]] && { echo 'ERROR: Hostname cannot be empty'; exit 1; }
+echo
+read -rn1 -p '** Encrypt disk with LUKS? [Y/n] ';echo
+case $REPLY in y|Y|"") CRYPT='yes'; esac
+echo
+read -rn1 -p '** Install a graphical environment? [Y/n] ';echo
+case $REPLY in y|Y|"") INST_GFX='yes'; esac
+echo
+# Start logging all output messages
+exec > >(tee -i $LOG_FILE)
+exec 2>&1
+echo '[] Arch Installation Input Summary:'
+echo "Started logging to: $LOG_FILE"
+echo "Package mirror line: $MIRROR_LINE"
+echo "Username: 'user'"
+echo "Password: '$PASS'"
+echo "Locale: '$MYLOCALE'"
+echo "Hostname: '$HOST'"
+[[ $INST_GFX ]] && echo 'Will install graphical desktop' || echo 'No desktop install'
+[[ $IS_SSD ]] && echo 'SSD Detected' || echo 'Assuming magnetic hdd'
+[[ $CRYPT ]] && echo 'Will create 1 boot partition and 1 LUKS LVM partition to $DISK' \
+    || echo 'Will create 4 partitions: boot, root, swap, home'
+echo
+read -p "WILL NOW OVERWRITE $DISK: to proceed, press [enter] "
+
+# COMMAND EXECUTION
+#
+if [[ $CRYPT ]]; then
+    # Disk wipe & re-partition: boot, lvm
+    fdisk $DISK < <(echo -e 'o\nn\np\n1\n\n+2G\nn\np\n2\n\n\nt\n2\n8E\na\n1\nw')
+    partprobe; sync; sleep 1
+    BOOTPART="$DISK"1 #exmaple: sda1
+    [[ -b $BOOTPART ]] || BOOTPART="$DISK"p1 #example: mmcblk0p1
+    [[ -b $BOOTPART ]] || { echo "[] Could not identify boot partition '$BOOTPART'"; exit 1; }
+    LVMPART="$DISK"2
+    [[ -b $LVMPART ]] || LVMPART="$DISK"p2
+    [[ -b $LVMPART ]] || { echo "[] Could not identify LVM partition '$LVMPART'"; exit 1; }
+    # Create encrypted partitions
+    cryptsetup -c aes-xts-plain64 -s 512 luksFormat $LVMPART < <(echo -n $PASS)
+    cryptsetup luksOpen $LVMPART lvm < <(echo -n $PASS)
+    pvcreate $([ $IS_SSD ] && echo '--dataalignment 1m') /dev/mapper/lvm
+    vgcreate volgroup0 /dev/mapper/lvm
+    lvcreate -L 60G -n lv_root volgroup0
+    ROOTPART=/dev/mapper/volgroup0-lv_root
+    lvcreate -L 4G -n lv_swap volgroup0
+    SWAPPART=/dev/mapper/volgroup0-lv_swap
+    lvcreate -l 100%FREE -n lv_home volgroup0
+    HOMEPART=/dev/mapper/volgroup0-lv_home
+    vgscan
+    vgchange -ay
+else
+    # Disk wipe & re-partition: boot, root, swap, home
+    fdisk $DISK < <(echo -e 'o\nn\np\n1\n\n+2G\nn\np\n2\n\n+60G\nn\np\n3\n\n+4G\nn\np\n\n\nt\n3\n82\na\n1\nw')
+    partprobe; sync; sleep 1
+    BOOTPART="$DISK"1 #exmaple: sda1
+    [[ -b $BOOTPART ]] || BOOTPART="$DISK"p1 #example: mmcblk0p1
+    [[ -b $BOOTPART ]] || { echo "[] Could not identify boot partition '$BOOTPART'"; exit 1; }
+    ROOTPART="$DISK"2
+    [[ -b $ROOTPART ]] || ROOTPART="$DISK"p2
+    [[ -b $ROOTPART ]] || { echo "[] Could not identify root partition '$ROOTPART'"; exit 1; }
+    SWAPPART="$DISK"3
+    [[ -b $SWAPPART ]] || SWAPPART="$DISK"p3
+    [[ -b $SWAPPART ]] || { echo "[] Could not identify swap partition '$SWAPPART'"; exit 1; }
+    HOMEPART="$DISK"4
+    [[ -b $HOMEPART ]] || HOMEPART="$DISK"p4
+    [[ -b $HOMEPART ]] || { echo "[] Could not identify home partition '$HOMEPART'"; exit 1; }
+fi
+
+# Format all partitions
+mkfs.ext4 -vFm0 -L bootpart $BOOTPART
+mkfs.ext4 -vFm0 -L rootpart $ROOTPART
+mkfs.ext4 -vFm0 -L homepart $HOMEPART
+mkswap $SWAPPART
+
+# Set partition default mount options
+if [[ IS_SSD ]]; then
+    MOPTS='-c0 -i0 -o discard'
+else
+    MOPTS='-c0 -i0'
+fi
+tune2fs $MOPTS $BOOTPART
+tune2fs $MOPTS $ROOTPART
+tune2fs $MOPTS $HOMEPART
+
+# Mount /mnt
+mount -o noatime $ROOTPART /mnt
+mkdir /mnt/boot /mnt/home
+mount -o noatime $BOOTPART /mnt/boot
+mount -o noatime $HOMEPART /mnt/home
+
+# Installing base packages
+echo $MIRROR_LINE > /etc/pacman.d/mirror
+sed -i 's#mirrorlist#mirror#g' /etc/pacman.conf
+pacstrap -M /mnt base openssh grub-bios linux-headers wpa_supplicant wireless_tools wpa_actiond dialog sudo alsa-utils sed
+cp -v /etc/pacman.d/mirror /mnt/etc/pacman.d/
+sed -i 's#mirrorlist#mirror#g' /mnt/etc/pacman.conf
+CHR='arch-chroot /mnt'
+$CHR pacman --noconfirm -Syu #update package repositories
+
+# Writing configs
+echo
+echo '[] Writing custom configs'
+genfstab -Up /mnt >> /mnt/etc/fstab
+echo -e "UUID=$(blkid -o value -s UUID $SWAPPART)\tnone\tswap\tdefaults\t0\t0" >> /mnt/etc/fstab
+$CHR hostnamectl set-hostname $HOST
+echo "$HOST" > /mnt/etc/hostname
+cat > /mnt/etc/hosts << EOF
+# Static table lookup for hostnames. See hosts(5) for details
+#<ip-address>	<hostname.domain.org>	<hostname>
+127.0.0.1	localhost.localdomain	localhost
+::1	localhost.localdomain	localhost
+127.0.1.1	$HOST.localdomain	$HOST
+EOF
+sed -i "s/#\($MYLOCALE UTF-8\)/\1/" /mnt/etc/locale.gen
+$CHR locale-gen
+echo "LANG=$MYLOCALE" > /mnt/etc/locale.conf
+$CHR localectl set-locale LANG=$MYLOCALE
+ln -vsr /mnt/usr/share/zoneinfo/$MYZONE /mnt/etc/localhost
+$CHR hwclock --systohc --utc
+if [[ $CRYPT ]]; then
+    sed -i 's_^HOOKS.*_HOOKS=(base udev autodetect modconf block encrypt lvm2 filesystems keyboard fsck)_' /mnt/etc/mkinitcpio.conf
+    LVMID=$(blkid -o value -s UUID $LVMPART)
+    sed -i "s/\(GRUB_CMDLINE_LINUX=\).*/\1\x22cryptdevice=UUID=$LVMID:volgroup0 libata.allow_tpm=1 acpi_osi=\x27\x21Windows 2012\x27\x22/" /mnt/etc/default/grub
+    sed -i 's/.*ENABLE_CRYPTODISK.*/GRUB_ENABLE_CRYPTODISK=y/' /mnt/etc/default/grub
+else
+    sed -i "s/\(GRUB_CMDLINE_LINUX=\).*/\1\x22libata.allow_tpm=1 acpi_osi=\x27\x21Windows 2012\x27\x22/" /mnt/etc/default/grub
+fi
+sed -i 's/"quiet"/""/' /mnt/etc/default/grub
+$CHR mkinitcpio -p linux
+grub-install --boot-directory=/mnt/boot --target=i386-pc --recheck $DISK
+cp -v /mnt/usr/share/locale/en\@quot/LC_MESSAGES/grub.mo /mnt/boot/grub/locale/en.mo
+$CHR grub-mkconfig -o /boot/grub/grub.cfg
+$CHR groupadd -g 1000 user
+$CHR useradd -m -g 1000 -G wheel,storage,power,audio,video,sys,network,lp,uucp,kvm,rfkill,input -s /bin/bash user
+$CHR passwd user < <(echo -e "$PASS\n$PASS")
+(umask 0026; echo '%wheel ALL=(ALL) ALL' > /mnt/etc/sudoers.d/custom)
+$CHR passwd -l root #lock root
+$CHR chage -I -1 -m 0 -M 99999 -E -1 root #lock root even more
+if [[ -z INST_GFX ]]; then
+    # Assuming minimal server box
+    $CHR systemctl enable dhcpcd
+    $CHR systemctl enable sshd
+else
+    GFXBASE='xorg-server xorg-xinit xorg-apps mesa glu xorg-twm xorg-xclock xterm ttf-dejavu xf86-input-synaptics'
+    GFXDRIVERS='xf86-video-nouveau xf86-video-ati mesa-vdpau xf86-video-intel vulkan-intel xf86-video-vesa xf86-video-fbdev'
+    GFXDESKTOP='cinnamon networkmanager network-manager-applet firefox thunderbird gedit vlc qt5 youtube-dl pavucontrol'
+    $CHR pacman --noconfirm -S $GFXBASE $GFXDRIVERS $GFXDESKTOP
+    # Display manager alternative: automatic getty login
+    mkdir -p /mnt/etc/systemd/system/getty@tty1.service.d/
+    echo -e '[Service]\nTTYVTDisallocate=no\nExecStart=\nExecStart=-/usr/bin/agetty --autologin user --noclear %I $TERM' \
+        > /mnt/etc/systemd/system/getty@tty1.service.d/override.conf
+    echo 'exec cinnamon-session' > /mnt/home/user/.xinitrc && chown 1000.1000 $_
+    echo '[[ ! $DISPLAY && $XDG_VTNR -eq 1 ]] && startx' >> /mnt/home/user/.bash_profile
+    $CHR systemctl enable NetworkManager getty@tty1
+    # Allow user to comfortably perform polkit actions like: shutting down the pc
+    {
+    echo 'polkit.addRule(function(action, subject) {'
+    echo '    if (subject.isInGroup("wheel")) {'
+    echo '        return polkit.Result.YES;'
+    echo '    }'
+    echo '});'
+    } > /mnt/etc/polkit-1/rules.d/10-custom.rules
+fi
+umount -v /mnt/home /mnt/boot /mnt
+echo
+echo '[] Done! Check the log, poweroff and remove your installation medium'
+
+# EOF
+
+
+
+
+
+
