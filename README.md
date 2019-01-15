@@ -30,16 +30,16 @@ HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABI
 
 ## Operation
 
-- A minimum number of user input will be gathered by the script:
+- A minimum amount of user input will be gathered by the script:
 1. Disk to install to
 2. Login password, will also be used for disk encryption (optional)
 3. Machine name
 4. Whether to use LUKS disk encryption
 5. Whether to install a graphical desktop environment
 
-- A default user named `user` will be created with the password you provide.
+- Language and country settings can be conveniently edited inside the script prior to running.
 
-- Language and country settings can be conveniently edited inside the script.
+- A default user named `user` will be created with the password you provide.
 
 - Installation log will be written to `archmat.log` inside the temporary installation environment.
 
@@ -48,7 +48,7 @@ HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABI
 
 ## How to launch
 
-1. Download the latest Arch Linux iso file: [link](https://www.archlinux.org/download/)
+1. Download the latest Arch Linux ISO file: [link](https://www.archlinux.org/download/)
 
 2. Write it to an USB drive: [guide](https://wiki.archlinux.org/index.php/USB_flash_installation_media)
 
@@ -60,7 +60,7 @@ Alternatively, after running `wifi-menu` on the live media:
 
 Using `wget` is also quite convenient for testing in a virtual machine.
 
-4. Boot the iso and run the script `sh /path/to/archmat`
+4. Boot the ISO and run the script `sh /path/to/archmat`
 
 
 ## Contact info & donations
