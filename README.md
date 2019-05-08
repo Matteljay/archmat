@@ -73,12 +73,12 @@ You may skip step 1 and 2 if you already have Arch Linux installed manually. The
 
 3. To make sure you get access to the files from this project and open a root shell:
 
-    ```bash
-    sudo pacman -S git
-    git clone https://github.com/matteljay/archmat
-    cd archmat/
-    sudo -s
-    ```
+```bash
+sudo pacman -S git
+git clone https://github.com/matteljay/archmat
+cd archmat/
+sudo -s
+```
 
 4. Start running the scripts in order, you may skip number '0' if you plan to install via an online mirror
 
@@ -87,32 +87,32 @@ You may skip step 1 and 2 if you already have Arch Linux installed manually. The
 
 ### Automatic luks disk login without password at boot
 
-    ```bash
-    dd if=/dev/urandom of=/crypto_keyfile.bin bs=512 count=8
-    chmod 000 /crypto_keyfile.bin
-    cryptsetup luksAddKey /dev/sdX2 /crypto_keyfile.bin
+```bash
+dd if=/dev/urandom of=/crypto_keyfile.bin bs=512 count=8
+chmod 000 /crypto_keyfile.bin
+cryptsetup luksAddKey /dev/sdX2 /crypto_keyfile.bin
 
-    nano /etc/mkinitcpio.conf
-    FILES=(/crypto_keyfile.bin)
+nano /etc/mkinitcpio.conf
+FILES=(/crypto_keyfile.bin)
 
-    arch-chroot /mnt mkinitcpio -p linux
-    ```
+arch-chroot /mnt mkinitcpio -p linux
+```
 
 ### Add disk static mount point at boot
 
-    ```bash
-    mkdir -m700 /etc/luks-keys/
-    dd if=/dev/urandom of=/etc/luks-keys/magnetic.bin bs=512 count=8
-    cryptsetup -v luksAddKey /dev/sdX2 /etc/luks-keys/magnetic.bin
+```bash
+mkdir -m700 /etc/luks-keys/
+dd if=/dev/urandom of=/etc/luks-keys/magnetic.bin bs=512 count=8
+cryptsetup -v luksAddKey /dev/sdX2 /etc/luks-keys/magnetic.bin
 
-    blkid -o value -s UUID /dev/sdX2
-    nano /etc/crypttab
-    magnetic_lvm UUID=a249aefb-c4b9-4ef2-849a-8b092be5ba6c /etc/luks-keys/magnetic.bin luks
+blkid -o value -s UUID /dev/sdX2
+nano /etc/crypttab
+magnetic_lvm UUID=a249aefb-c4b9-4ef2-849a-8b092be5ba6c /etc/luks-keys/magnetic.bin luks
 
-    blkid -o value -s UUID /dev/mapper/magnetic_lvm
-    nano /etc/fstab
-    UUID=32c1e6ea-cd35-421c-9ae4-28694f136d84 /media/magnetic_home ext4 rw,noatime 0 2
-    ```
+blkid -o value -s UUID /dev/mapper/magnetic_lvm
+nano /etc/fstab
+UUID=32c1e6ea-cd35-421c-9ae4-28694f136d84 /media/magnetic_home ext4 rw,noatime 0 2
+```
 
 ## Contact info & donations
 
