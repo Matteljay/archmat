@@ -73,7 +73,7 @@ You may skip step 1 and 2 if you already have Arch Linux installed manually. The
 
 3. Make sure you get access to the files from this project. And open a root shell:
 
-```shell
+```sh
 sudo pacman -S git
 git clone https://github.com/matteljay/archmat
 cd archmat/
@@ -87,7 +87,7 @@ sudo -s
 
 ### Automatic luks disk login without password at boot
 
-```shell
+```sh
 dd if=/dev/urandom of=/crypto_keyfile.bin bs=512 count=8
 chmod 000 /crypto_keyfile.bin
 cryptsetup luksAddKey /dev/sdX2 /crypto_keyfile.bin
@@ -100,7 +100,7 @@ arch-chroot /mnt mkinitcpio -p linux
 
 ### Add encrypted disk static mount point at boot
 
-```shell
+```sh
 mkdir -m700 /etc/luks-keys/
 dd if=/dev/urandom of=/etc/luks-keys/magnetic.bin bs=512 count=8
 cryptsetup -v luksAddKey /dev/sdX2 /etc/luks-keys/magnetic.bin
