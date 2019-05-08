@@ -47,7 +47,6 @@ echo '[] Arch Installation Input Summary:'
 echo MYLOCALE=$MYLOCALE
 echo HOSTNAME=$HOSTNAME
 echo USER=$USER
-#echo PASS=$PASS
 echo DISK=$DISK
 echo VGUNIQ=$VGUNIQ
 echo BOOTPART=$BOOTPART
@@ -66,7 +65,6 @@ echo "UUID=$(uuidFromPart $HOMEPART) /home ext4 rw,noatime 0 2" >> /mnt/etc/fsta
 echo "UUID=$(uuidFromPart $SWAPPART) none swap defaults 0 0" >> /mnt/etc/fstab
 
 echo '[] Writing new host-name config'
-#defective: $CHRUN hostnamectl set-hostname $HOSTNAME
 echo "$HOSTNAME" > /mnt/etc/hostname
 cat > /mnt/etc/hosts << EOF
 #<ip-address> <hostname.domain.org> <hostname> See hosts(5) for details
@@ -79,11 +77,11 @@ echo '[] Copying setup resources'
 cp -rv setup_res/* /mnt/
 grep -q 'bash.custom' /mnt/etc/bash.bashrc || echo '[ -r /etc/bash.custom ] && . /etc/bash.custom' >> $_
 grep -q 'Downloads' /mnt/etc/cups/cups-pdf.conf || echo 'Out ${HOME}/Downloads' >> $_
+chmod 640 /mnt/etc/sudoers.d/custom
 
 echo '[] Writing locale info'
 sed -i "s/#\($MYLOCALE UTF-8\)/\1/" /mnt/etc/locale.gen
 $CHRUN locale-gen
-#echo "LANG=$MYLOCALE" > /mnt/etc/locale.conf
 $CHRUN localectl set-locale LANG=$MYLOCALE
 ln -vfsr /mnt/usr/share/zoneinfo/Europe/Amsterdam /mnt/etc/localhost
 $CHRUN hwclock --systohc --utc
@@ -105,29 +103,14 @@ echo '[] Writing user login'
 $CHRUN groupadd -g 1000 $USER && \
 $CHRUN useradd -m -g 1000 -G wheel,storage,power,audio,video,sys,network,lp,uucp,kvm,rfkill,input -s /bin/bash $USER || true
 $CHRUN passwd $USER < <(echo -e "$PASS\n$PASS")
-#(umask 0026; echo '%wheel ALL=(ALL) ALL' > /mnt/etc/sudoers.d/custom)
 $CHRUN passwd -l root #lock root
 $CHRUN chage -I -1 -m 0 -M 99999 -E -1 root #lock root even more
 
 echo '[] Writing GUI configs'
-# Display manager alternative: automatic getty login
-#mkdir -p /mnt/etc/systemd/system/getty@tty1.service.d/
-#echo -e "[Service]\nTTYVTDisallocate=no\nExecStart=\nExecStart=-/usr/bin/agetty --autologin $USER --noclear %I $TERM" \
-#    > /mnt/etc/systemd/system/getty@tty1.service.d/override.conf
-#echo 'exec cinnamon-session' > /mnt/home/$USER/.xinitrc
-#chown 1000.1000 /mnt/home/$USER/.xinitrc
-# Yes, using single quote below is correct
+# using single quote below is correct
 echo -e '[[ -f ~/.bashrc ]] && . ~/.bashrc\n[[ ! $DISPLAY && $XDG_VTNR -eq 1 ]] && startx' > /mnt/home/$USER/.bash_profile
 chown 1000.1000 /mnt/home/$USER/.bash_profile
 $CHRUN systemctl enable getty@tty1 NetworkManager cronie acpid org.cups.cupsd openntpd
-# Allow user to comfortably perform polkit actions like: shutting down the pc
-#{
-#echo 'polkit.addRule(function(action, subject) {'
-#echo '    if (subject.isInGroup("wheel")) {'
-#echo '        return polkit.Result.YES;'
-#echo '    }'
-#echo '});'
-#} > /mnt/etc/polkit-1/rules.d/10-custom.rules
 
 echo '[] Success'
 
