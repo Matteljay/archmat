@@ -1,0 +1,29 @@
+/* Custom Polkit Rules */
+
+polkit.addRule(function(action, subject) {
+    var ac = action.id;
+    /* Remove hibernate & suspend buttons from desktop */
+    if (ac.indexOf("org.freedesktop.login1.suspend") == 0 ||
+        ac.indexOf("org.freedesktop.login1.hibernate") == 0)
+    {
+        //polkit.log("NO - action=" + action);
+        return polkit.Result.NO;
+    }
+    if ((ac.indexOf("org.blueman.") == 0 ||
+        ac.indexOf("org.freedesktop.NetworkManager.") == 0 ||
+        ac.indexOf("org.freedesktop.RealtimeKit1.") == 0 ||
+        ac.indexOf("org.freedesktop.login1.") == 0 ||
+        ac.indexOf("org.freedesktop.udisks2.") == 0) &&
+        subject.isInGroup("wheel"))
+    {
+        //polkit.log("YES - action=" + action);
+        return polkit.Result.YES;
+    }
+});
+
+/* EOF */
+
+
+
+
+

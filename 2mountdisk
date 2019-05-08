@@ -1,0 +1,46 @@
+#!/bin/bash
+set -e
+yell() { echo "$0: $*" >&2; }
+die() { yell "$*"; exit 111; }
+try() { "$@" || die "cannot $*"; }
+[[ $UID -eq 0 ]] || die '[] This should be run as root'
+
+# Input testing
+if [[ $# -ne 1 ]]; then
+    lsblk
+    echo
+    die "[] Usage: [block device like sdc]"
+fi
+BLOCK=$(tr -d '[:space:]' <<< $1); DISK=/dev/$BLOCK
+[[ -b $DISK ]] || die 'ERROR: Bad block device, just type sdX'
+getPartFromBlock() {
+    lsblk -nlo path $1 | sed -n $((1+$2))p
+}
+getVGfromContainer() {
+    pvs --noheadings -o vg_name $1 | xargs
+}
+BOOTPART=$(getPartFromBlock $DISK 1)
+LVMPART=$(getPartFromBlock $DISK 2)
+
+mountpoint -q /mnt && die '/mnt is already mounted'
+
+echo '[] Mounting to /mnt'
+[[ ! -b /dev/mapper/vgnewsys ]] && cryptsetup luksOpen $LVMPART vgnewsys
+sleep 1
+VGNAME=$(getVGfromContainer /dev/mapper/vgnewsys)
+ROOTPART=/dev/mapper/$VGNAME-lv_root
+HOMEPART=/dev/mapper/$VGNAME-lv_home
+
+mount -o noatime $ROOTPART /mnt
+mkdir -p /mnt/boot /mnt/home
+mount -o noatime $BOOTPART /mnt/boot
+mount -o noatime $HOMEPART /mnt/home
+
+echo '[] Success'
+ls --color -l /mnt
+
+# EOF
+
+
+
+

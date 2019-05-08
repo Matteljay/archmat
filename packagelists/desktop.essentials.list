@@ -1,0 +1,33 @@
+# desktop essentials
+#
+
+xorg-server
+xorg-xinit
+xorg-apps
+mesa
+glu
+xorg-twm
+xorg-xclock
+xterm
+ttf-dejavu
+xf86-input-synaptics
+xf86-video-nouveau
+xf86-video-ati
+mesa-vdpau
+xf86-video-intel
+vulkan-intel
+xf86-video-vesa
+xf86-video-fbdev
+cinnamon
+networkmanager
+network-manager-applet
+firefox
+thunderbird
+gedit
+vlc
+qt5
+pavucontrol
+youtube-dl
+
+# eof
+

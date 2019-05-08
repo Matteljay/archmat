@@ -1,0 +1,84 @@
+#!/bin/bash
+set -e
+yell() { echo "$0: $*" >&2; }
+die() { yell "$*"; exit 111; }
+try() { "$@" || die "cannot $*"; }
+[[ $UID -eq 0 ]] || die '[] This should be run as root'
+
+# Input testing
+if [[ $# -ne 1 ]]; then
+    lsblk
+    echo
+    die "[] Usage: [block device like sdc]"
+fi
+BLOCK=$(tr -d '[:space:]' <<< $1); DISK=/dev/$BLOCK
+[[ -b $DISK ]] || die 'ERROR: Bad block device, just type sdX'
+
+read -rsp '[] Please enter new disk password: ' PASS
+[[ -z $PASS ]] && die 'ERROR: Password cannot be empty'
+[[ $PASS = *' '* ]] && die 'ERROR: Password cannot contain spaces!'
+echo
+
+# Confirm
+echo "[] Will create 1 boot partition and 1 LUKS LVM partition to '$DISK'"
+echo
+read -p "[] WILL NOW OVERWRITE $DISK: to proceed, press [enter] "
+
+# Command execution
+echo '[] Wiping disk'
+vgscan --cache >/dev/null
+for PHYSVOL in $(lsblk -pl $DISK | grep crypt\ *$ | cut -f1 -d' '); do
+    #example: PHYSVOL=/dev/mapper/vgnewsys
+    blkdeactivate $PHYSVOL
+done
+for PART in $(lsblk -pl $DISK | grep part\ *$ | cut -f1 -d' '); do
+    dd if=/dev/zero of=$PART bs=1M count=1 2>/dev/null
+done
+dd if=/dev/zero of=$DISK bs=1M count=1 2>/dev/null
+partprobe; sync; sleep 1
+
+echo '[] Partitioning disk'
+fdisk $DISK < <(echo -e 'o\nn\np\n1\n\n+2G\nn\np\n2\n\n\nt\n2\n8E\na\n1\nw') >/dev/null
+partprobe; sync; sleep 1
+getPartFromBlock() {
+    lsblk -nlo path $1 | sed -n $((1+$2))p
+}
+BOOTPART=$(getPartFromBlock $DISK 1)
+LVMPART=$(getPartFromBlock $DISK 2)
+# Create encrypted partitions
+VGUNIQ=volgroup$(cat /dev/urandom | tr -dc '0-9' | head -c 4)
+cryptsetup -c aes-xts-plain64 -s 512 luksFormat $LVMPART < <(echo -n $PASS)
+cryptsetup luksOpen $LVMPART vgnewsys < <(echo -n $PASS)
+pvcreate -qff /dev/mapper/vgnewsys
+vgcreate -qf $VGUNIQ /dev/mapper/vgnewsys
+lvcreate -qL 60G -n lv_root $VGUNIQ
+ROOTPART=/dev/mapper/$VGUNIQ-lv_root
+lvcreate -qL 4G -n lv_swap $VGUNIQ
+SWAPPART=/dev/mapper/$VGUNIQ-lv_swap
+lvcreate -ql 100%FREE -n lv_home $VGUNIQ
+HOMEPART=/dev/mapper/$VGUNIQ-lv_home
+vgscan -q
+vgchange -qay
+
+echo '[] Formatting'
+mkfs.ext4 -qFm0 -L bootpart $BOOTPART
+mkfs.ext4 -qFm0 -L rootpart $ROOTPART
+mkfs.ext4 -qFm0 -L homepart $HOMEPART
+mkswap $SWAPPART >/dev/null
+MOPTS='-c0 -i0'
+tune2fs $MOPTS $BOOTPART >/dev/null
+tune2fs $MOPTS $ROOTPART >/dev/null
+tune2fs $MOPTS $HOMEPART >/dev/null
+
+echo '[] Cleaning up LUKS & LVM nodes'
+partprobe; sync; sleep 1
+blkdeactivate /dev/mapper/vgnewsys
+
+echo '[] Success'
+
+# EOF
+
+
+
+
+

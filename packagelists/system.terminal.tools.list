@@ -1,0 +1,33 @@
+# system terminal tools
+#
+
+fdupes
+pacman-contrib
+acpid
+arch-install-scripts
+cronie
+at
+efibootmgr
+linux-firmware
+whois
+vim
+hdparm
+sdparm
+lsof
+clonezilla
+gdisk
+testdisk
+extundelete
+ext4magic
+devtools
+openssh
+grub-bios
+linux-headers
+wpa_supplicant
+wireless_tools
+dialog
+sudo
+alsa-utils
+
+# eof
+

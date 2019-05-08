@@ -1,0 +1,6 @@
+# Custom sudoers config, chmod 640
+%wheel ALL=(ALL) ALL
+user ALL=(root) NOPASSWD: /usr/bin/veracrypt, /usr/bin/aconnect
+user ALL=(root) NOPASSWD: /sbin/shutdown, /sbin/poweroff, /sbin/reboot
+
+# EOF

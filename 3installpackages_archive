@@ -1,0 +1,68 @@
+#!/bin/bash
+set -e
+yell() { echo "$0: $*" >&2; }
+die() { yell "$*"; exit 111; }
+try() { "$@" || die "cannot $*"; }
+[[ $UID -eq 0 ]] || die '[] This should be run as root'
+
+# Constants
+FALLBACKMIRROR='Server = http://mirrors.evowise.com/archlinux/$repo/os/$arch'
+export LC_ALL=C
+
+# Tests
+mountpoint -q /mnt || die 'you need to mount /mnt first'
+[[ -d packages ]] || die 'packages-folder not found'
+#[[ -d /mnt/etc ]] && die 'mount point already seems to contain an installed system'
+
+echo '[] Creating new root folder structure'
+mkdir -m 0755 -p /mnt/var/{cache/pacman/pkg,lib/pacman/sync,log} /mnt/{dev,run,etc}
+mkdir -m 1777 -p /mnt/tmp
+mkdir -m 0555 -p /mnt/{sys,proc}
+
+echo '[] Activate chroot mount points'
+mount proc "/mnt/proc" -t proc -o nosuid,noexec,nodev
+mount sys "/mnt/sys" -t sysfs -o nosuid,noexec,nodev,ro
+mount udev "/mnt/dev" -t devtmpfs -o mode=0755,nosuid
+mount devpts "/mnt/dev/pts" -t devpts -o mode=0620,gid=5,nosuid,noexec
+mount shm "/mnt/dev/shm" -t tmpfs -o mode=1777,nosuid,nodev
+mount /run "/mnt/run" --bind
+mount tmp "/mnt/tmp" -t tmpfs -o mode=1777,strictatime,nodev,nosuid
+trap "umount /mnt/{proc,sys,tmp,run,dev/shm,dev/pts,dev}" EXIT
+
+echo '[] Copying package dbs'
+cp -vf packages/*.db /mnt/var/lib/pacman/sync/
+
+echo '[] Installing base group'
+install_group() {
+    for PKG in $@; do
+        NEWARGS+="packages/$PKG-[0-9]?*.tar.xz "
+    done
+    pacman --noconfirm --root /mnt -U $NEWARGS
+}
+install_group bash bzip2 coreutils cryptsetup device-mapper dhcpcd diffutils e2fsprogs file filesystem findutils gawk gcc-libs gettext glibc grep gzip inetutils iproute2 iputils jfsutils less licenses linux linux-firmware logrotate lvm2 man-db man-pages mdadm nano netctl pacman pciutils perl procps-ng psmisc reiserfsprogs s-nail sed shadow sysfsutils systemd-sysvcompat tar texinfo usbutils util-linux vi which xfsprogs
+
+echo '[] Copying pacman keys and mirror'
+cp -av /etc/pacman.d/gnupg /mnt/etc/pacman.d/
+cp -v /etc/pacman.d/mirror /mnt/etc/pacman.d/ || echo $FALLBACKMIRROR > /mnt/etc/pacman.d/mirror
+sed -i 's#mirrorlist#mirror#g' /mnt/etc/pacman.conf
+sed -i 's_^#\[multilib\]$_[multilib]\nInclude = /etc/pacman.d/mirror_' /mnt/etc/pacman.conf
+
+echo '[] Copying packages'
+cp -rnv packages/*.tar.xz /mnt/var/cache/pacman/pkg/
+
+echo '[] Installing inside root environment'
+pacman --noconfirm --needed --root /mnt -U packages/*.tar.xz
+
+echo '[] De-activate chroot mount points'
+umount /mnt/{proc,sys,tmp,run,dev/shm,dev/pts,dev}
+trap - EXIT
+
+echo '[] Success'
+
+# EOF
+
+
+
+
+
+

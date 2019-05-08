@@ -1,0 +1,18 @@
+# Custom NANO Configuration
+
+# Disable text wrapping
+set nowrap
+
+# Proper TAB handling
+set tabsize 4
+set tabstospaces
+
+# Color Syntax Definitions
+include "/usr/share/nano/*.nanorc"
+
+# EOF
+
+
+
+
+

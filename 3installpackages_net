@@ -1,0 +1,61 @@
+#!/bin/bash
+set -e
+yell() { echo "$0: $*" >&2; }
+die() { yell "$*"; exit 111; }
+try() { "$@" || die "cannot $*"; }
+[[ $UID -eq 0 ]] || die '[] This should be run as root'
+
+# Constants
+FALLBACKMIRROR='Server = http://mirrors.evowise.com/archlinux/$repo/os/$arch'
+CHRUN='arch-chroot /mnt'
+export LC_ALL=C
+
+# Tests
+mountpoint -q /mnt || die 'you need to mount /mnt first'
+[[ -d packagelists ]] || die 'packagelists-folder not found'
+#[[ -d /mnt/etc ]] && die 'mount point already seems to contain an installed system'
+
+echo '[] Testing internet connection'
+if ! ping -c3 -W4 8.8.8.8; then
+    echo 'ERROR: No internet connection'
+    echo
+    echo 'Possibly useful troubleshooting commands:'
+    echo 'ip addr (device name example: enp0s3, wlp3s0)'
+    echo 'cp /etc/netctl/examples/wireless-wpa /etc/netctl/name'
+    echo 'netctl start name'
+    echo
+    read -rn1 -p "[] Would you like to run 'wifi-menu'? [Y/n] ";echo
+    case $REPLY in y|Y|"") exec wifi-menu; esac
+    exit 1
+fi
+
+echo '[] Checking package lists validity'
+PKGLIST=""
+for file in packagelists/*.list; do
+    PKGLIST+=$(sed -e 's/\s*#.*$//' -e '/^$/d' $file)$'\n'
+done
+pacman -Qg $(pacman -Q $PKGLIST 2>&1 | grep "error: package '" | cut -d\' -f2) 1>/dev/null || \
+echo 'some packages no longer exist, please update the .list files manually'
+
+echo '[] Installing base group'
+pacstrap -M /mnt base
+
+echo '[] Enable pacman mirror'
+cp -v /etc/pacman.d/mirror /mnt/etc/pacman.d/ || echo $FALLBACKMIRROR > /mnt/etc/pacman.d/mirror
+sed -i 's#mirrorlist#mirror#g' /mnt/etc/pacman.conf
+sed -i 's_^#\[multilib\]$_[multilib]\nInclude = /etc/pacman.d/mirror_' /mnt/etc/pacman.conf
+
+echo '[] Updating databases'
+$CHRUN pacman --noconfirm -qSyyu
+
+echo '[] Installing inside root environment'
+$CHRUN pacman --noconfirm --needed -qS $PKGLIST
+
+echo '[] Success'
+
+# EOF
+
+
+
+
+

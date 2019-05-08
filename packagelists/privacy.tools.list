@@ -1,0 +1,22 @@
+# privacy tools
+#
+
+keepassxc
+veracrypt
+bleachbit
+macchanger
+chntpw
+ophcrack
+john
+reaver
+aircrack-ng
+wifite
+pwgen
+hydra
+hashcat
+hashcat-utils
+libxnvctrl
+oath-toolkit
+
+# eof
+

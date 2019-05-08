@@ -1,0 +1,140 @@
+#!/bin/bash
+set -e
+yell() { echo "$0: $*" >&2; }
+die() { yell "$*"; exit 111; }
+try() { "$@" || die "cannot $*"; }
+[[ $UID -eq 0 ]] || die '[] This should be run as root'
+
+# Tests
+mountpoint -q /mnt || die 'you need to mount /mnt first'
+[[ -b /dev/mapper/vgnewsys ]] || die 'vgnewsys not found'
+[[ $# -eq 1 ]] || die "Usage: $0 [machine host name]"
+
+# Constants
+HOSTNAME=$1
+MYLOCALE='en_DK.UTF-8'
+CHRUN='arch-chroot /mnt'
+USER='user'
+
+# Input
+read -rsp '[] Please enter new user password: ' PASS
+[[ -z $PASS ]] && die 'ERROR: Password cannot be empty'
+[[ $PASS = *' '* ]] && die 'ERROR: Password cannot contain spaces!'
+echo
+uuidFromPart() {
+    blkid -o value -s UUID $1
+}
+getVGfromContainer() {
+    pvs --noheadings -o vg_name $1 | xargs
+}
+getPartFromBlock() {
+    lsblk -nlo path $1 | sed -n $((1+$2))p
+}
+getBlockFromContainer() {
+    PART=$(dmsetup info --noheadings -co blkdevs_used $1)
+    lsblk -nlo pkname /dev/$PART | head -n1
+}
+BLOCK=$(getBlockFromContainer vgnewsys)
+DISK=/dev/$BLOCK
+BOOTPART=$(getPartFromBlock $DISK 1)
+LVMPART=$(getPartFromBlock $DISK 2)
+VGUNIQ=$(getVGfromContainer /dev/mapper/vgnewsys)
+ROOTPART=/dev/mapper/$VGUNIQ-lv_root
+HOMEPART=/dev/mapper/$VGUNIQ-lv_home
+SWAPPART=/dev/mapper/$VGUNIQ-lv_swap
+
+echo '[] Arch Installation Input Summary:'
+echo MYLOCALE=$MYLOCALE
+echo HOSTNAME=$HOSTNAME
+echo USER=$USER
+#echo PASS=$PASS
+echo DISK=$DISK
+echo VGUNIQ=$VGUNIQ
+echo BOOTPART=$BOOTPART
+echo LVMPART=$LVMPART
+echo ROOTPART=$ROOTPART
+echo HOMEPART=$HOMEPART
+echo SWAPPART=$SWAPPART
+echo
+read -p "[] To proceed, press [enter] "
+
+echo '[] Writing fstab partition table'
+echo '# <file system> <dir> <type> <options> <dump> <pass> See fstab(5) for details' > /mnt/etc/fstab
+echo "UUID=$(uuidFromPart $ROOTPART) / ext4 rw,noatime 0 1" >> /mnt/etc/fstab
+echo "UUID=$(uuidFromPart $BOOTPART) /boot ext4 rw,noatime 0 2" >> /mnt/etc/fstab
+echo "UUID=$(uuidFromPart $HOMEPART) /home ext4 rw,noatime 0 2" >> /mnt/etc/fstab
+echo "UUID=$(uuidFromPart $SWAPPART) none swap defaults 0 0" >> /mnt/etc/fstab
+
+echo '[] Writing new host-name config'
+#defective: $CHRUN hostnamectl set-hostname $HOSTNAME
+echo "$HOSTNAME" > /mnt/etc/hostname
+cat > /mnt/etc/hosts << EOF
+#<ip-address> <hostname.domain.org> <hostname> See hosts(5) for details
+127.0.0.1 localhost.localdomain localhost
+::1 localhost.localdomain localhost
+127.0.1.1 $HOSTNAME.localdomain $HOSTNAME
+EOF
+
+echo '[] Copying setup resources'
+cp -rv setup_res/* /mnt/
+grep -q 'bash.custom' /mnt/etc/bash.bashrc || echo '[ -r /etc/bash.custom ] && . /etc/bash.custom' >> $_
+grep -q 'Downloads' /mnt/etc/cups/cups-pdf.conf || echo 'Out ${HOME}/Downloads' >> $_
+
+echo '[] Writing locale info'
+sed -i "s/#\($MYLOCALE UTF-8\)/\1/" /mnt/etc/locale.gen
+$CHRUN locale-gen
+#echo "LANG=$MYLOCALE" > /mnt/etc/locale.conf
+$CHRUN localectl set-locale LANG=$MYLOCALE
+ln -vfsr /mnt/usr/share/zoneinfo/Europe/Amsterdam /mnt/etc/localhost
+$CHRUN hwclock --systohc --utc
+
+echo '[] Building initramfs with crypto enhancements'
+sed -i 's_^HOOKS.*_HOOKS=(base udev autodetect modconf block encrypt lvm2 filesystems keyboard fsck shutdown)_' /mnt/etc/mkinitcpio.conf
+LVMID=$(uuidFromPart $LVMPART)
+GCFG='/mnt/etc/default/grub'
+sed -i "s/\(GRUB_CMDLINE_LINUX=\).*/\1\x22cryptdevice=UUID=$LVMID:$VGUNIQ libata.allow_tpm=1 acpi_osi=\x27\x21Windows 2012\x27\x22/" $GCFG
+sed -i 's/.*ENABLE_CRYPTODISK.*/GRUB_ENABLE_CRYPTODISK=y/' $GCFG
+grep -q GRUB_FORCE_HIDDEN_MENU $GCFG || echo 'GRUB_FORCE_HIDDEN_MENU=true' >> $GCFG
+sed -i 's/"quiet"/""/' $GCFG
+$CHRUN mkinitcpio -p linux
+grub-install --boot-directory=/mnt/boot --target=i386-pc --recheck $DISK
+cp -v /mnt/usr/share/locale/en\@quot/LC_MESSAGES/grub.mo /mnt/boot/grub/locale/en.mo
+$CHRUN grub-mkconfig -o /boot/grub/grub.cfg
+
+echo '[] Writing user login'
+$CHRUN groupadd -g 1000 $USER && \
+$CHRUN useradd -m -g 1000 -G wheel,storage,power,audio,video,sys,network,lp,uucp,kvm,rfkill,input -s /bin/bash $USER || true
+$CHRUN passwd $USER < <(echo -e "$PASS\n$PASS")
+#(umask 0026; echo '%wheel ALL=(ALL) ALL' > /mnt/etc/sudoers.d/custom)
+$CHRUN passwd -l root #lock root
+$CHRUN chage -I -1 -m 0 -M 99999 -E -1 root #lock root even more
+
+echo '[] Writing GUI configs'
+# Display manager alternative: automatic getty login
+#mkdir -p /mnt/etc/systemd/system/getty@tty1.service.d/
+#echo -e "[Service]\nTTYVTDisallocate=no\nExecStart=\nExecStart=-/usr/bin/agetty --autologin $USER --noclear %I $TERM" \
+#    > /mnt/etc/systemd/system/getty@tty1.service.d/override.conf
+#echo 'exec cinnamon-session' > /mnt/home/$USER/.xinitrc
+#chown 1000.1000 /mnt/home/$USER/.xinitrc
+# Yes, using single quote below is correct
+echo -e '[[ -f ~/.bashrc ]] && . ~/.bashrc\n[[ ! $DISPLAY && $XDG_VTNR -eq 1 ]] && startx' > /mnt/home/$USER/.bash_profile
+chown 1000.1000 /mnt/home/$USER/.bash_profile
+$CHRUN systemctl enable getty@tty1 NetworkManager cronie acpid org.cups.cupsd openntpd
+# Allow user to comfortably perform polkit actions like: shutting down the pc
+#{
+#echo 'polkit.addRule(function(action, subject) {'
+#echo '    if (subject.isInGroup("wheel")) {'
+#echo '        return polkit.Result.YES;'
+#echo '    }'
+#echo '});'
+#} > /mnt/etc/polkit-1/rules.d/10-custom.rules
+
+echo '[] Success'
+
+# EOF
+
+
+
+
+
+

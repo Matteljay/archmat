@@ -1,0 +1,15 @@
+#!/bin/bash
+set -e
+
+echo '[] Making sure your package cache is complete & self contained'
+pacman --noconfirm -Sc
+pacman --noconfirm -Syw $(expac -l '\n' %E | sort -u)
+cp -rfv /var/cache/pacman/pkg packages
+rm -rf packages/*.db
+cp -v /var/lib/pacman/sync/*.db packages
+
+echo '[] Success'
+
+# EOF
+
+

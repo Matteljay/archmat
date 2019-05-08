@@ -1,0 +1,30 @@
+# audio
+#
+
+libgme
+audio-convert
+wavegain
+linuxsampler
+jsampler
+flac
+lame
+opusfile
+cdparanoia
+qjackctl
+phonon-qt5-vlc
+ffmpeg
+id3v2
+alsa-oss
+audacity
+musescore
+hydrogen
+zynaddsubfx
+subtitleeditor
+mplayer
+qsynth
+soundfont-fluid
+vorbis-tools
+vorbisgain
+
+# eof
+

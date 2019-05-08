@@ -1,0 +1,14 @@
+# hardware interface
+#
+
+qreator
+android-tools
+pulseview
+avrdude
+pcsc-tools
+ifuse
+squashfs-tools
+mtd-utils
+
+# eof
+

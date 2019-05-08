@@ -1,0 +1,29 @@
+#!/bin/sh
+exec tail -n +3 $0
+# This file provides an easy way to add custom menu entries.  Simply type the
+# menu entries you want to add after this comment.  Be careful not to change
+# the 'exec tail' line above.
+
+menuentry "Chain load other disk" {
+    set root=(hd1)
+    drivemap -s hd0 hd1
+    chainloader (hd1)+1
+}
+
+menuentry "System restart" {
+    echo "System rebooting..."
+    reboot
+}
+
+# Show menu ONLY if shift key is held
+#if keystatus --shift; then
+#    set timeout=-1
+#else
+#    set timeout=0
+#fi
+
+#EOF
+
+
+
+

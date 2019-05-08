@@ -1,0 +1,18 @@
+#!/bin/bash
+set -e
+yell() { echo "$0: $*" >&2; }
+die() { yell "$*"; exit 111; }
+try() { "$@" || die "cannot $*"; }
+[[ $UID -eq 0 ]] || die '[] This should be run as root'
+
+mountpoint -q /mnt/home && umount /mnt/home
+mountpoint -q /mnt/boot && umount /mnt/boot
+mountpoint -q /mnt && umount /mnt
+[[ -b /dev/mapper/vgnewsys ]] && blkdeactivate /dev/mapper/vgnewsys
+sync
+sleep 1
+echo '[] Success'
+
+# EOF
+
+

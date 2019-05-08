@@ -1,0 +1,28 @@
+# file processors
+#
+
+libmtp
+fltk
+sharutils
+shake
+dos2unix
+avfs
+expac
+libpst
+zip
+p7zip
+unrar
+rmlint
+rmlint-shredder
+gprename
+acetoneiso2
+bchunk
+dcfldd
+rdiff-backup
+binwalk
+lrzip
+pkgfile
+cpio
+
+# eof
+

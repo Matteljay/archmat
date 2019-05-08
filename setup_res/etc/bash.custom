@@ -1,0 +1,8 @@
+unset HISTFILE
+export EDITOR='nano'
+export LESSHISTFILE="-"
+alias less='less -Si'
+alias ls='ls --color'
+alias cp='cp -vi'
+alias mv='mv -vi'
+alias rm='rm -v'

@@ -1,0 +1,20 @@
+# science
+#
+
+units
+bc
+qalculate-gtk
+geda-gaf
+ngspice
+intltool
+celestia
+gpsim
+arduino
+arduino-docs
+viking
+gpsprune
+gpx-viewer
+gpsd
+
+# eof
+

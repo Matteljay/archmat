@@ -1,0 +1,20 @@
+# language tools
+#
+
+espeak
+flite
+festival
+festival-english
+festival-us
+julius
+voxforge-am-julius
+goldendict
+hunspell
+hunspell-en_US
+hunspell-en_GB
+hunspell-de
+hunspell-fr
+hunspell-nl
+
+# eof
+

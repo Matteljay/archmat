@@ -1,0 +1,6 @@
+# Custom YouTube-dl config
+#--restrict-filenames --output "%(uploader)s/%(upload_date)s %(title)s.%(ext)s"
+--output "%(title)s.%(ext)s"
+
+# EOF
+

@@ -1,0 +1,20 @@
+# emulators
+#
+
+virtualbox
+virtualbox-host-modules-arch
+virtualbox-guest-iso
+virtualbox-guest-modules-arch
+wine
+winetricks
+playonlinux
+lib32-libglvnd
+lib32-libpulse
+lib32-mpg123
+lib32-gnutls
+lib32-openal
+lib32-giflib
+lib32-opencl-icd-loader
+
+# eof
+

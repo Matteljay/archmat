@@ -1,0 +1,27 @@
+#!/bin/bash
+set -e
+yell() { echo "$0: $*" >&2; }
+die() { yell "$*"; exit 111; }
+try() { "$@" || die "cannot $*"; }
+[[ $UID -eq 0 ]] || die '[] This should be run as root'
+mountpoint -q /mnt || die 'you need to mount /mnt first'
+
+read -p "[] WILL NOW WIPE /mnt: to proceed, press [enter] "
+echo
+echo '[] Wiping files from disk at /mnt'
+umount /mnt/{proc,sys,tmp,run,dev/shm,dev/pts,dev} 2>/dev/null || true
+sleep 1
+shopt -s extglob
+cd /mnt
+rm -rf !("lost+found"|"home"|"boot")
+cd /mnt/boot
+rm -rf !("lost+found")
+cd /mnt/home
+rm -rf !("lost+found")
+
+echo '[] Success'
+
+# EOF
+
+
+

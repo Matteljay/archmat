@@ -1,0 +1,4 @@
+# Custom power button script
+event=button/power
+action=/usr/bin/poweroff
+

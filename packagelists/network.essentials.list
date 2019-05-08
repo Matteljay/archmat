@@ -1,0 +1,32 @@
+# network essentials
+#
+
+usb_modeswitch
+dnscrypt-wrapper
+dnscrypt-proxy
+blueman
+bluez
+bluez-tools
+bluez-utils
+pulseaudio-bluetooth
+rfkill
+quiterss
+firefox
+firefox-adblock-plus
+youtube-dl
+thunderbird
+thunderbird-extension-enigmail
+gnupg
+transmission-gtk
+transmission-cli
+hexchat
+mumble
+openvpn
+easy-rsa
+networkmanager-openvpn
+wget
+gnu-netcat
+openntpd
+
+# eof
+

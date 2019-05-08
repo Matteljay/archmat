@@ -1,0 +1,27 @@
+# desktop tools
+#
+
+baobab
+xdiskusage
+gvfs-mtp
+gnome-disk-utility
+catfish
+onboard
+xterm
+gnome-terminal
+dconf-editor
+gpg-crypter
+gparted
+dosbox
+fbreader
+xarchiver-gtk2
+xsel
+xclip
+xcursor-themes
+sdl_ttf
+gnome-screenshot
+gucharmap
+evince
+
+# eof
+
