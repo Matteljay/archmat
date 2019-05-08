@@ -18,8 +18,8 @@ The purpose of these scripts is to facilitate the automated installation of Arch
 
 ## Disclaimer
 
-These scripts are designed to directly overwrite a system disk. A small typo on either the user's or developer's part
-can lead to irrevocable data loss. Or destruction of your current system. Disclaimer:
+These scripts are designed to directly overwrite a system disk. A small typing error on either the user's or developer's part
+can lead to irrevocable data loss. Or destruction of your current system. Backup everything first! Disclaimer:
 
 THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
 HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
@@ -71,7 +71,7 @@ You may skip step 1 and 2 if you already have Arch Linux installed manually. The
 
 2. Write it to an USB drive, then launch it: [guide](https://wiki.archlinux.org/index.php/USB_flash_installation_media)
 
-3. To make sure you get access to the files from this project and open a root shell:
+3. Make sure you get access to the files from this project. And open a root shell:
 
 ```shell
 sudo pacman -S git
@@ -98,7 +98,7 @@ FILES=(/crypto_keyfile.bin)
 arch-chroot /mnt mkinitcpio -p linux
 ```
 
-### Add disk static mount point at boot
+### Add encrypted disk static mount point at boot
 
 ```shell
 mkdir -m700 /etc/luks-keys/
