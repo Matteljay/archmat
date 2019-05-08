@@ -1,4 +1,4 @@
-## Arch Linux automated installation script
+## Arch Linux automated installation scripts
 
 - License: MIT License
 - Author: Matteljay
@@ -8,18 +8,18 @@
 
 ## Introduction
 
-The purpose of these scripts is to facilitate the automated installation of Arch Linux on an encrypted disk.
+The purpose of these scripts is to facilitate the automated installation of Arch Linux to an encrypted disk.
 
+- Create a functioning operating system quickly. Booting into a Cinnamon desktop provides a solid starting point for Arch Linux
+- Reduce the chance of typing errors. Repeatedly providing device node references can be both tedious and dangerous.
 - The required user input is minimal. However, due to the modular design of these scripts, one can easily customize the installation to taste.
 - For reference, see the Arch Linux official [installation guide](https://wiki.archlinux.org/index.php/Installation_guide)
-- Reduce the chance of typing errors. Repeatedly providing device node references can be both tedious and dangerous.
-- Create a functioning operating system quickly. Booting into a Cinnamon desktop provides a solid starting point for Arch Linux
 
 
 ## Disclaimer
 
 These scripts are designed to directly overwrite a system disk. A small typing error on either the user's or developer's part
-can lead to irrevocable data loss. Or destruction of your current system. Backup everything first! Disclaimer:
+can lead to irrevocable data loss. Or destruction of your current system. Backup everything first!
 
 THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
 HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
@@ -29,8 +29,8 @@ HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABI
 
 **0pkgs_offline** *(optional)*
 - Cleans, rebuilds and checks you local pacman package repository so that it can function as a stand-alone package repository for a functioning Arch Linux system.
-Special care is taken to ensure inter-dependency checking among the currently installed packages.
-- Copies the whole cache and the databases to the *packages/* folder.
+Special care was taken to ensure inter-dependency checking among the currently installed packages.
+- Copies the whole cache and the databases to the `packages/` folder.
 
 **1builddisk**
 - Scans the target block device of your choice for existing LVM2 partitions, un-mounts and thoroughly wipes each segment so that no traces remain for pvcreate, vgcreate and lvcreate
@@ -42,34 +42,34 @@ Special care is taken to ensure inter-dependency checking among the currently in
 - Includes creating root and home folders and mounting those partitions from luks-crypto container.
 
 **3installpackages_archive** *(optional)*
-- First installs the Arch base-packages from your offline *packages/* folder.
-- Then installs the entire local *packages/* folder.
+- First installs the Arch base-packages from your offline `packages/` folder.
+- Then installs the entire local `packages/` folder.
 
 **3installpackages_net**
 - First installs the Arch base-packages from the internet.
-- Then installs all the package names from the *packagelists/* folder. Will first check if those packages still exist on the official repositories.
+- Then installs all the package names from the `packagelists/` folder. Will first check if those packages still exist on the official repositories.
 
 **4setup_cinnamon**
 - Will completely configure your new installation for automatic GUI login into a Cinnamon desktop environment.
 Finds out based on the luks container what block device and which partition uuids to use for *fstab* table.
-Also copies the useful custom config files from *setup_res/* folder.
+Also copies the useful custom config files from `setup_res/` folder.
 - Requires you to provide a new machine host name, the wheel username *user* will be created. Also asks for a new user password.
 
 **5umountdisk**
-- Neatly un-mounts */mnt* and it's recursive mount points.
-- Makes sure the lvm nodes are properly removed from */dev/mapper/*
+- Neatly un-mounts `/mnt` and it's recursive mount points.
+- Makes sure the lvm nodes are properly removed from `/dev/mapper/`
 
 **wipefast_mnt** *(optional)*
-- Mostly for debugging, quickly clears the files from an existing disk, leaving only *lost+found/* and emptied *boot/* and *home/* mount points.
+- Mostly for debugging, quickly clears the files from an existing disk, leaving only `lost+found/` and emptied `boot/` and `home/` mount points.
 
 
 ## How to launch
 
 You may skip step 1 and 2 if you already have Arch Linux installed manually. The Archmat scripts can easily operate from an existing installation.
 
-1. Download the latest Arch Linux ISO file: [link](https://www.archlinux.org/download/)
+1. Download the latest Arch Linux ISO file from this [link](https://www.archlinux.org/download/)
 
-2. Write it to an USB drive, then launch it: [guide](https://wiki.archlinux.org/index.php/USB_flash_installation_media)
+2. Write it to an USB drive, then boot into the drive, explained in the official [guide](https://wiki.archlinux.org/index.php/USB_flash_installation_media)
 
 3. Make sure you get access to the files from this project. And open a root shell:
 
