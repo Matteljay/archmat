@@ -1,4 +1,3 @@
-# Archmat
 ## Arch Linux automated installation script
 
 - License: MIT License
@@ -84,7 +83,7 @@ You may skip step 1 and 2 if you already have Arch Linux installed manually. The
 
 ## Additional post-installation tips and tricks
 
-# Automatic luks disk login without password at boot
+### Automatic luks disk login without password at boot
 
     dd if=/dev/urandom of=/crypto_keyfile.bin bs=512 count=8
     chmod 000 /crypto_keyfile.bin
@@ -95,7 +94,7 @@ You may skip step 1 and 2 if you already have Arch Linux installed manually. The
 
     arch-chroot /mnt mkinitcpio -p linux
 
-# Add extra magnetic disk mount point
+### Add extra magnetic disk mount point
 
     mkdir -m700 /etc/luks-keys/
     dd if=/dev/urandom of=/etc/luks-keys/magnetic.bin bs=512 count=8
