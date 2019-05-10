@@ -32,7 +32,7 @@ for PHYSVOL in $(lsblk -pl $DISK | grep crypt\ *$ | cut -f1 -d' '); do
     blkdeactivate $PHYSVOL
 done
 for PART in $(lsblk -pl $DISK | grep part\ *$ | cut -f1 -d' '); do
-    dd if=/dev/zero of=$PART bs=1M count=1 2>/dev/null
+    dd if=/dev/zero of=$PART bs=1M count=1 2>/dev/null || true
 done
 dd if=/dev/zero of=$DISK bs=1M count=1 2>/dev/null
 partprobe; sync; sleep 1
@@ -57,8 +57,8 @@ lvcreate -qL 4G -n lv_swap $VGUNIQ
 SWAPPART=/dev/mapper/$VGUNIQ-lv_swap
 lvcreate -ql 100%FREE -n lv_home $VGUNIQ
 HOMEPART=/dev/mapper/$VGUNIQ-lv_home
-vgscan -q
-vgchange -qay
+vgscan -q >/dev/null
+vgchange -qay >/dev/null
 
 echo '[] Formatting'
 mkfs.ext4 -qFm0 -L bootpart $BOOTPART

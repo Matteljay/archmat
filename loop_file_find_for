@@ -1,0 +1,11 @@
+#!/bin/bash
+set -e
+
+find . | while read file; do
+    #newfile="${file//[^[:ascii:]]/}"
+    #newfile=$(echo $file | sed -e 's/[^A-Za-z0-9./ _-]/_/g' | xargs)
+    newfile=$(echo $file | tr -d '\200-\377')
+    if [[ "$newfile" != "$file" ]]; then
+        echo mv -i "$file" "$newfile"
+    fi
+done
